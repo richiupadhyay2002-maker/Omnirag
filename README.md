@@ -6,7 +6,9 @@
 
 **Chat with any file — grounded, cited, hallucination-checked answers.**
 
-Runs 100% locally · $0 infrastructure cost · no cloud APIs required
+Runs 100% locally by default · $0 infrastructure cost · no cloud APIs required (optional Groq fallback off by default)
+
+[![CI](https://github.com/richiupadhyay2002-maker/Omnirag/actions/workflows/ci.yml/badge.svg)](https://github.com/richiupadhyay2002-maker/Omnirag/actions/workflows/ci.yml)
 
 ![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white&style=flat-square)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white&style=flat-square)
@@ -27,7 +29,7 @@ Runs 100% locally · $0 infrastructure cost · no cloud APIs required
 
 The engineering focus of this project is the layer most RAG demos skip: **per-file-type ingestion that preserves provenance**. Every document type gets its own loader and chunking strategy, normalizing heterogeneous files into a common shape that carries source metadata. At query time, that metadata powers document-scoped retrieval, citations computed independently of generation, and a **hallucination guard** that forces the model to answer only from retrieved context — or state that the answer wasn't found.
 
-Everything runs on your machine: local embeddings (sentence-transformers), an on-disk vector database (ChromaDB), and a local LLM served by Ollama — with an optional free-tier Groq fallback.
+Everything runs on your machine by default: local embeddings (sentence-transformers), an on-disk vector database (ChromaDB), and a local LLM served by Ollama. An optional free-tier Groq fallback exists but is **off by default** (`LLM_PROVIDER=ollama`); enabling it sends queries to a third-party API.
 
 ## Screenshots
 
@@ -38,9 +40,9 @@ Everything runs on your machine: local embeddings (sentence-transformers), an on
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/landing-hero.png" alt="OmniRAG answering 'explain both images' with a grounded analysis of two uploaded image files" width="860">
+  <img src="docs/screenshots/landing-hero.png" alt="OmniRAG landing page hero — headline, upload dropzone, and feature highlights" width="860">
   <br>
-  <em>Image Q&amp;A — two uploaded images surface as knowledge cards, answered with a grounded step-by-step analysis</em>
+  <em>Landing page — headline, drag-and-drop upload, and supported file types</em>
 </p>
 
 ## Key features
@@ -168,7 +170,7 @@ The evaluation harness runs a 15-question golden set (factual, cross-file, code,
 ## Project structure
 
 ```
-omnirag/
+Omnirag/
 ├── backend/
 │   ├── app/
 │   │   ├── main.py             # FastAPI app & routes
@@ -187,6 +189,21 @@ omnirag/
 ├── docker-compose.yml
 └── README.md
 ```
+
+## Security and privacy
+
+- **Data stays local by default.** Embeddings (sentence-transformers), the
+  vector store (ChromaDB, on-disk under `backend/data/`), uploaded files, and
+  generation (Ollama) all run on your machine — nothing leaves it unless you
+  enable the optional Groq fallback.
+- **Never commit `.env` or uploads.** Real API keys, `backend/data/`,
+  `*.sqlite3` / `*.db` files, eval outputs (`backend/eval/results.json`), and
+  IDE settings are gitignored. Copy `backend/.env.example` to `backend/.env`
+  and keep secrets local. See [SECURITY.md](SECURITY.md) for how to report
+  vulnerabilities.
+- **Groq fallback is optional and off by default** (`LLM_PROVIDER=ollama`).
+  Setting `LLM_PROVIDER=groq` sends your queries and retrieved context to
+  Groq's third-party API — only enable it deliberately with your own key.
 
 ## Roadmap
 
