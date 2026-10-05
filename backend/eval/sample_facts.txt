@@ -1,0 +1,20 @@
+The OmniRAG Sample Document
+===========================
+
+This file exists so you can try the evaluation harness without preparing your own
+documents. Replace these entries with facts from your real files.
+
+SECTION 1: Geography Facts
+The capital of France is Paris. The longest river in the world is the Nile, at
+approximately 6,650 kilometers. Mount Everest, on the border of Nepal and China,
+is the tallest mountain on Earth at 8,849 meters.
+
+SECTION 2: Space Facts
+According to this document, the Perseverance Mars rover landed on the red planet
+in February 2021. The James Webb Space Telescope launched in December 2021 and
+began science operations in July 2022.
+
+SECTION 3: About This Document
+This sample document was written by the OmniRAG team to demonstrate the retrieval
+evaluation pipeline. All facts above are self-contained: you can ask the golden
+questions in golden_questions.csv and verify retrieval and answer quality.

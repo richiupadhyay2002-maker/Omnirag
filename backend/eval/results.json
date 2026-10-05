@@ -1,0 +1,418 @@
+{
+  "retrieval": {
+    "backend": "tfidf-fallback-pure",
+    "recall_at_k": 1.0,
+    "mrr": 0.9423,
+    "top_k": 8,
+    "num_scored": 13,
+    "num_unanswerable_excluded": 2,
+    "details": [
+      {
+        "question": "What is the capital of France?",
+        "category": "factual",
+        "expected_source": "sample_facts.txt",
+        "retrieved_rank": 1,
+        "top_file": "sample_facts.txt",
+        "reciprocal_rank": 1.0
+      },
+      {
+        "question": "Who wrote the OmniRAG sample document?",
+        "category": "factual",
+        "expected_source": "sample_facts.txt",
+        "retrieved_rank": 1,
+        "top_file": "sample_facts.txt",
+        "reciprocal_rank": 1.0
+      },
+      {
+        "question": "What year did the Mars rover land according to the document?",
+        "category": "factual",
+        "expected_source": "sample_facts.txt",
+        "retrieved_rank": 1,
+        "top_file": "sample_facts.txt",
+        "reciprocal_rank": 1.0
+      },
+      {
+        "question": "What is the longest river in the world and how long is it?",
+        "category": "factual",
+        "expected_source": "sample_facts.txt",
+        "retrieved_rank": 1,
+        "top_file": "sample_facts.txt",
+        "reciprocal_rank": 1.0
+      },
+      {
+        "question": "When did the James Webb Space Telescope launch and begin science operations?",
+        "category": "factual",
+        "expected_source": "sample_facts.txt",
+        "retrieved_rank": 1,
+        "top_file": "sample_facts.txt",
+        "reciprocal_rank": 1.0
+      },
+      {
+        "question": "How tall is Mount Everest and where is it located?",
+        "category": "factual",
+        "expected_source": "sample_facts.txt",
+        "retrieved_rank": 1,
+        "top_file": "sample_facts.txt",
+        "reciprocal_rank": 1.0
+      },
+      {
+        "question": "What is the default embedding model used by OmniRAG?",
+        "category": "factual",
+        "expected_source": "project_notes.md",
+        "retrieved_rank": 1,
+        "top_file": "project_notes.md",
+        "reciprocal_rank": 1.0
+      },
+      {
+        "question": "Which vector database does OmniRAG use and how is data isolated per workspace?",
+        "category": "factual",
+        "expected_source": "project_notes.md",
+        "retrieved_rank": 1,
+        "top_file": "project_notes.md",
+        "reciprocal_rank": 1.0
+      },
+      {
+        "question": "What should OmniRAG answer when the context does not contain the answer?",
+        "category": "unanswerable",
+        "expected_source": "project_notes.md",
+        "retrieved_rank": 1,
+        "top_file": "project_notes.md",
+        "reciprocal_rank": 1.0
+      },
+      {
+        "question": "What is the capital of Germany according to the uploaded files?",
+        "category": "unanswerable",
+        "expected_source": "",
+        "retrieved_rank": null,
+        "top_file": null,
+        "reciprocal_rank": null,
+        "excluded_from_recall": true
+      },
+      {
+        "question": "Which file mentions both the Mars rover and the OmniRAG team, and what does each fact say?",
+        "category": "cross-file",
+        "expected_source": "sample_facts.txt",
+        "retrieved_rank": 1,
+        "top_file": "sample_facts.txt",
+        "reciprocal_rank": 1.0
+      },
+      {
+        "question": "What function in the sample API computes cosine similarity and what does it return?",
+        "category": "code",
+        "expected_source": "sample_api.py",
+        "retrieved_rank": 4,
+        "top_file": "sample_facts.txt",
+        "reciprocal_rank": 0.25
+      },
+      {
+        "question": "What does the chunk_documents function do with oversized documents?",
+        "category": "code",
+        "expected_source": "project_notes.md",
+        "retrieved_rank": 1,
+        "top_file": "project_notes.md",
+        "reciprocal_rank": 1.0
+      },
+      {
+        "question": "Compare the launch dates of Perseverance and JWST given in the sample facts.",
+        "category": "cross-file",
+        "expected_source": "sample_facts.txt",
+        "retrieved_rank": 1,
+        "top_file": "sample_facts.txt",
+        "reciprocal_rank": 1.0
+      },
+      {
+        "question": "Who is the current president of France?",
+        "category": "unanswerable",
+        "expected_source": "",
+        "retrieved_rank": null,
+        "top_file": null,
+        "reciprocal_rank": null,
+        "excluded_from_recall": true
+      }
+    ]
+  },
+  "answers": {
+    "keyword_accuracy": 0.9333,
+    "num_passed": 14,
+    "num_total": 15,
+    "details": [
+      {
+        "question": "What is the capital of France?",
+        "answer_excerpt": "**Answer**\n\nThe capital of France is **Paris**.\n\n**Source**\n\nThis fact is present in [Source 1: sample_facts.txt \u2014 lines 1-25], specifically in the \"SECTION 1: Geography Facts\" section.",
+        "expected_answer": "Paris",
+        "keywords_found": [
+          "paris"
+        ],
+        "keyword_pass": true,
+        "latency_s": 107.68,
+        "num_citations": 7,
+        "num_contexts": 7
+      },
+      {
+        "question": "Who wrote the OmniRAG sample document?",
+        "answer_excerpt": "I couldn't find this in the uploaded files.",
+        "expected_answer": "The OmniRAG team",
+        "keywords_found": [],
+        "keyword_pass": false,
+        "latency_s": 48.51,
+        "num_citations": 7,
+        "num_contexts": 7
+      },
+      {
+        "question": "What year did the Mars rover land according to the document?",
+        "answer_excerpt": "**Answer:**\n\nAccording to the provided context, the Mars rover landed on the red planet in **February 2021**. This information can be found in [Source 2: project_notes.md \u2014 lines 1-24] under the \"Space Facts\" section.\n\n**Citation:** [Source 2: project_notes.md \u2014 lines 1-24]",
+        "expected_answer": "2021",
+        "keywords_found": [
+          "2021",
+          "mars"
+        ],
+        "keyword_pass": true,
+        "latency_s": 60.71,
+        "num_citations": 7,
+        "num_contexts": 7
+      },
+      {
+        "question": "What is the longest river in the world and how long is it?",
+        "answer_excerpt": "**Answer**\n\nAccording to the provided context, the longest river in the world is the Nile, and it is approximately 6,650 kilometers long.\n\n**Source**\n\nThis information is present in [Source 1: sample_facts.txt \u2014 lines 1-25], specifically in the \"Geography Facts\" section.",
+        "expected_answer": "The Nile at approximately 6650 kilometers",
+        "keywords_found": [
+          "nile"
+        ],
+        "keyword_pass": true,
+        "latency_s": 60.18,
+        "num_citations": 7,
+        "num_contexts": 7
+      },
+      {
+        "question": "When did the James Webb Space Telescope launch and begin science operations?",
+        "answer_excerpt": "**Answer**\n\nAccording to the provided context, the James Webb Space Telescope launched in December 2021 and began science operations in July 2022. This information can be found in [Source 2: project_notes.md \u2014 lines 2-3].\n\n**Citation:** [Source 2: project_notes.md \u2014 lines 2-3]",
+        "expected_answer": "Launched December 2021; science operations July 2022",
+        "keywords_found": [
+          "2021",
+          "2022",
+          "webb"
+        ],
+        "keyword_pass": true,
+        "latency_s": 24.3,
+        "num_citations": 7,
+        "num_contexts": 7
+      },
+      {
+        "question": "How tall is Mount Everest and where is it located?",
+        "answer_excerpt": "**Answer**\n\nMount Everest is **8,849 meters** tall, and it is located on the border of **Nepal and China**.\n\n**Source:** [Source 1: sample_facts.txt \u2014 lines 1-25], SECTION 1: Geography Facts",
+        "expected_answer": "8849 meters, on the border of Nepal and China",
+        "keywords_found": [
+          "nepal",
+          "china",
+          "everest"
+        ],
+        "keyword_pass": true,
+        "latency_s": 63.94,
+        "num_citations": 7,
+        "num_contexts": 7
+      },
+      {
+        "question": "What is the default embedding model used by OmniRAG?",
+        "answer_excerpt": "**Answer**\n\nThe default embedding model used by OmniRAG is `sentence-transformers/all-MiniLM-L6-v2`. This information can be found in the **Embeddings** section of the [Source 1: project_notes.md](#source-1-project_notes.md) file, specifically on lines 3-4.\n\n**Citation:** [Source 1: project_notes.md",
+        "expected_answer": "sentence-transformers/all-MiniLM-L6-v2",
+        "keywords_found": [
+          "minilm",
+          "embedding",
+          "sentence"
+        ],
+        "keyword_pass": true,
+        "latency_s": 88.44,
+        "num_citations": 7,
+        "num_contexts": 7
+      },
+      {
+        "question": "Which vector database does OmniRAG use and how is data isolated per workspace?",
+        "answer_excerpt": "**Vector Database and Data Isolation**\n\nOmniRAG uses **Chroma** as its vector database. Data is isolated per workspace, with each workspace having its own Chroma collection named `ws_<workspace_id>`. Each chunk in the collection stores metadata, including `file_id`, `filename`, `file_type`, `locatio",
+        "expected_answer": "Chroma, one collection per workspace named ws_<id>",
+        "keywords_found": [
+          "chroma",
+          "workspace",
+          "collection"
+        ],
+        "keyword_pass": true,
+        "latency_s": 63.18,
+        "num_citations": 7,
+        "num_contexts": 7
+      },
+      {
+        "question": "What should OmniRAG answer when the context does not contain the answer?",
+        "answer_excerpt": "**Answering Grounded**\n\nAccording to the provided context, specifically from [Source 1: project_notes.md \u2014 lines 1-24], OmniRAG should answer exactly:\n\n\"I couldn't find this in the uploaded files.\"\n\nwhen the context does not contain the answer.",
+        "expected_answer": "I couldn't find this in the uploaded files",
+        "keywords_found": [
+          "<not-found-reply>"
+        ],
+        "keyword_pass": true,
+        "latency_s": 76.35,
+        "num_citations": 7,
+        "num_contexts": 7
+      },
+      {
+        "question": "What is the capital of Germany according to the uploaded files?",
+        "answer_excerpt": "I couldn't find this in the uploaded files.\n\nThe uploaded files do not mention the capital of Germany. The provided context only contains information about France, the Nile, Mount Everest, the Perseverance Mars rover, the James Webb Space Telescope, and the OmniRAG project. There is no mention of Ge",
+        "expected_answer": "I couldn't find this in the uploaded files",
+        "keywords_found": [
+          "<not-found-reply>"
+        ],
+        "keyword_pass": true,
+        "latency_s": 52.62,
+        "num_citations": 7,
+        "num_contexts": 7
+      },
+      {
+        "question": "Which file mentions both the Mars rover and the OmniRAG team, and what does each fact say?",
+        "answer_excerpt": "**Answer**\n\nThe file that mentions both the Mars rover and the OmniRAG team is [Source 1: sample_facts.txt](#source-1-sample-facts.txt) in the SECTION 2: Space Facts.\n\nThe facts mentioned are:\n\n* According to this document, the Perseverance Mars rover landed on the red planet in February 2021.\n* The",
+        "expected_answer": "sample_facts.txt: Perseverance landed Feb 2021; written by the OmniRAG team",
+        "keywords_found": [
+          "2021",
+          "omnirag",
+          "perseverance"
+        ],
+        "keyword_pass": true,
+        "latency_s": 38.82,
+        "num_citations": 7,
+        "num_contexts": 7
+      },
+      {
+        "question": "What function in the sample API computes cosine similarity and what does it return?",
+        "answer_excerpt": "**Answer**\n\nThe function that computes cosine similarity in the sample API is `cosine_similarity(a: list[float], b: list[float]) -> float`.\n\n**Return Value**\n\nThis function returns a float between -1 and 1, representing the cosine similarity between two vectors.",
+        "expected_answer": "cosine_similarity in sample_api.py returns a float between -1 and 1",
+        "keywords_found": [
+          "cosine",
+          "similarity",
+          "float"
+        ],
+        "keyword_pass": true,
+        "latency_s": 70.97,
+        "num_citations": 7,
+        "num_contexts": 7
+      },
+      {
+        "question": "What does the chunk_documents function do with oversized documents?",
+        "answer_excerpt": "**Answer**\n\nThe `chunk_documents()` function in `app/chunking.py` further splits oversized loader documents with `RecursiveCharacterTextSplitter`, keeping roughly 12% overlap so context is not lost at boundaries.",
+        "expected_answer": "Splits them with RecursiveCharacterTextSplitter keeping ~12% overlap",
+        "keywords_found": [
+          "split",
+          "overlap",
+          "chunk"
+        ],
+        "keyword_pass": true,
+        "latency_s": 43.28,
+        "num_citations": 7,
+        "num_contexts": 7
+      },
+      {
+        "question": "Compare the launch dates of Perseverance and JWST given in the sample facts.",
+        "answer_excerpt": "**Answer**\n\nThe launch dates of Perseverance and JWST are compared below:\n\n| Mission | Launch Date |\n| --- | --- |\n| Perseverance Mars Rover | February 2021 |\n| James Webb Space Telescope (JWST) | December 2021 |\n\nAccording to the sample facts, Perseverance Mars Rover landed on Mars in February 2021",
+        "expected_answer": "Perseverance Feb 2021; JWST launched Dec 2021, science Jul 2022",
+        "keywords_found": [
+          "2021",
+          "2022",
+          "perseverance",
+          "webb"
+        ],
+        "keyword_pass": true,
+        "latency_s": 61.59,
+        "num_citations": 7,
+        "num_contexts": 7
+      },
+      {
+        "question": "Who is the current president of France?",
+        "answer_excerpt": "I couldn't find this in the uploaded files.",
+        "expected_answer": "I couldn't find this in the uploaded files",
+        "keywords_found": [
+          "<not-found-reply>"
+        ],
+        "keyword_pass": true,
+        "latency_s": 6.43,
+        "num_citations": 7,
+        "num_contexts": 7
+      }
+    ],
+    "judge_mean": 4.4,
+    "judge_n": 15
+  },
+  "docs": "tests/eval_data/docs",
+  "questions": "tests/eval_data/golden_questions.csv",
+  "answer_rows": [
+    {
+      "question": "What is the capital of France?",
+      "answer": "**Answer**\n\nThe capital of France is **Paris**.\n\n**Source**\n\nThis fact is present in [Source 1: sample_facts.txt \u2014 lines 1-25], specifically in the \"SECTION 1: Geography Facts\" section.",
+      "contexts_n": 7
+    },
+    {
+      "question": "Who wrote the OmniRAG sample document?",
+      "answer": "I couldn't find this in the uploaded files.",
+      "contexts_n": 7
+    },
+    {
+      "question": "What year did the Mars rover land according to the document?",
+      "answer": "**Answer:**\n\nAccording to the provided context, the Mars rover landed on the red planet in **February 2021**. This information can be found in [Source 2: project_notes.md \u2014 lines 1-24] under the \"Space Facts\" section.\n\n**Citation:** [Source 2: project_notes.md \u2014 lines 1-24]",
+      "contexts_n": 7
+    },
+    {
+      "question": "What is the longest river in the world and how long is it?",
+      "answer": "**Answer**\n\nAccording to the provided context, the longest river in the world is the Nile, and it is approximately 6,650 kilometers long.\n\n**Source**\n\nThis information is present in [Source 1: sample_facts.txt \u2014 lines 1-25], specifically in the \"Geography Facts\" section.",
+      "contexts_n": 7
+    },
+    {
+      "question": "When did the James Webb Space Telescope launch and begin science operations?",
+      "answer": "**Answer**\n\nAccording to the provided context, the James Webb Space Telescope launched in December 2021 and began science operations in July 2022. This information can be found in [Source 2: project_notes.md \u2014 lines 2-3].\n\n**Citation:** [Source 2: project_notes.md \u2014 lines 2-3]",
+      "contexts_n": 7
+    },
+    {
+      "question": "How tall is Mount Everest and where is it located?",
+      "answer": "**Answer**\n\nMount Everest is **8,849 meters** tall, and it is located on the border of **Nepal and China**.\n\n**Source:** [Source 1: sample_facts.txt \u2014 lines 1-25], SECTION 1: Geography Facts",
+      "contexts_n": 7
+    },
+    {
+      "question": "What is the default embedding model used by OmniRAG?",
+      "answer": "**Answer**\n\nThe default embedding model used by OmniRAG is `sentence-transformers/all-MiniLM-L6-v2`. This information can be found in the **Embeddings** section of the [Source 1: project_notes.md](#source-1-project_notes.md) file, specifically on lines 3-4.\n\n**Citation:** [Source 1: project_notes.md](#source-1-project_notes.md) - lines 3-4",
+      "contexts_n": 7
+    },
+    {
+      "question": "Which vector database does OmniRAG use and how is data isolated per workspace?",
+      "answer": "**Vector Database and Data Isolation**\n\nOmniRAG uses **Chroma** as its vector database. Data is isolated per workspace, with each workspace having its own Chroma collection named `ws_<workspace_id>`. Each chunk in the collection stores metadata, including `file_id`, `filename`, `file_type`, `location`, `page`, and `image_path`.\n\n**Source:** [Source 1: project_notes.md \u2014 lines 12-16]\n\nNote: This answer only uses information present in the provided context and does not rely on general knowledge.",
+      "contexts_n": 7
+    },
+    {
+      "question": "What should OmniRAG answer when the context does not contain the answer?",
+      "answer": "**Answering Grounded**\n\nAccording to the provided context, specifically from [Source 1: project_notes.md \u2014 lines 1-24], OmniRAG should answer exactly:\n\n\"I couldn't find this in the uploaded files.\"\n\nwhen the context does not contain the answer.",
+      "contexts_n": 7
+    },
+    {
+      "question": "What is the capital of Germany according to the uploaded files?",
+      "answer": "I couldn't find this in the uploaded files.\n\nThe uploaded files do not mention the capital of Germany. The provided context only contains information about France, the Nile, Mount Everest, the Perseverance Mars rover, the James Webb Space Telescope, and the OmniRAG project. There is no mention of Germany or its capital.",
+      "contexts_n": 7
+    },
+    {
+      "question": "Which file mentions both the Mars rover and the OmniRAG team, and what does each fact say?",
+      "answer": "**Answer**\n\nThe file that mentions both the Mars rover and the OmniRAG team is [Source 1: sample_facts.txt](#source-1-sample-facts.txt) in the SECTION 2: Space Facts.\n\nThe facts mentioned are:\n\n* According to this document, the Perseverance Mars rover landed on the red planet in February 2021.\n* The James Webb Space Telescope launched in December 2021 and began science operations in July 2022.\n\nNote that these facts are mentioned in the context of the OmniRAG team's sample document, which is use",
+      "contexts_n": 7
+    },
+    {
+      "question": "What function in the sample API computes cosine similarity and what does it return?",
+      "answer": "**Answer**\n\nThe function that computes cosine similarity in the sample API is `cosine_similarity(a: list[float], b: list[float]) -> float`.\n\n**Return Value**\n\nThis function returns a float between -1 and 1, representing the cosine similarity between two vectors.",
+      "contexts_n": 7
+    },
+    {
+      "question": "What does the chunk_documents function do with oversized documents?",
+      "answer": "**Answer**\n\nThe `chunk_documents()` function in `app/chunking.py` further splits oversized loader documents with `RecursiveCharacterTextSplitter`, keeping roughly 12% overlap so context is not lost at boundaries.",
+      "contexts_n": 7
+    },
+    {
+      "question": "Compare the launch dates of Perseverance and JWST given in the sample facts.",
+      "answer": "**Answer**\n\nThe launch dates of Perseverance and JWST are compared below:\n\n| Mission | Launch Date |\n| --- | --- |\n| Perseverance Mars Rover | February 2021 |\n| James Webb Space Telescope (JWST) | December 2021 |\n\nAccording to the sample facts, Perseverance Mars Rover landed on Mars in February 2021, and the James Webb Space Telescope launched in December 2021 and began science operations in July 2022.",
+      "contexts_n": 7
+    },
+    {
+      "question": "Who is the current president of France?",
+      "answer": "I couldn't find this in the uploaded files.",
+      "contexts_n": 7
+    }
+  ]
+}

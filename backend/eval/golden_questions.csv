@@ -1,0 +1,4 @@
+question,expected_answer,source_filename,keywords
+"What is the capital of France?","Paris","sample_facts.txt","paris"
+"Who wrote the OmniRAG sample document?","The OmniRAG team","sample_facts.txt","omnirag|team"
+"What year did the Mars rover land according to the document?","2021","sample_facts.txt","2021|mars"
