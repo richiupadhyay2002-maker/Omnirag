@@ -1,10 +1,52 @@
-backend/venv/
+# ---- Secrets / env (never commit real values) ----
+.env
+.env.*
+!backend/.env.example
+!frontend/.env.example
+*.pem
+*.key
+*.p12
+credentials.json
+secrets.*
+
+# ---- Data / uploads / vector store (never commit user data) ----
 backend/data/
-backend/.env
-frontend/node_modules/
-frontend/dist/
-frontend/.env
+backend/chroma_db/
+data/
+uploads/
+storage/
+*.sqlite3
+*.db
+*.db-journal
+
+# ---- Eval outputs (may contain private doc content) ----
+backend/eval/results.json
+
+# ---- Python ----
+backend/venv/
+.venv/
+venv/
 __pycache__/
 *.pyc
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ---- Frontend ----
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+
+# ---- IDE / OS (personal paths) ----
+.vscode/settings.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# ---- Misc ----
 .qodo/
+*.log
+
