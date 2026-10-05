@@ -3,17 +3,23 @@
 # run on the host (recommended) so it can use your GPU. If you'd rather run
 # Ollama in a container too, uncomment the "ollama" service below.
 
-version: "3.9"
-
 services:
   backend:
     build: ./backend
     ports:
       - "8000:8000"
-    volumes:
-      - ./backend/data:/app/data
+    env_file:
+      - path: ./backend/.env
+        required: false
     environment:
-      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      # Non-secret defaults (overridable via backend/.env or the shell).
+      # Never put real API keys here — keep GROQ_API_KEY in backend/.env only.
+      - LLM_PROVIDER=${LLM_PROVIDER:-ollama}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      - CHROMA_PERSIST_DIR=${CHROMA_PERSIST_DIR:-/app/data/chroma}
+      - UPLOAD_DIR=${UPLOAD_DIR:-/app/data/uploads}
+    volumes:
+      - backend_data:/app/data
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
@@ -21,8 +27,12 @@ services:
     build: ./frontend
     ports:
       - "5173:5173"
+    env_file:
+      - path: ./frontend/.env
+        required: false
     environment:
-      - VITE_API_URL=http://localhost:8000
+      # Build-time default; override via frontend/.env or the shell.
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:8000}
     depends_on:
       - backend
 
@@ -33,5 +43,6 @@ services:
   #   volumes:
   #     - ollama_data:/root/.ollama
 
-# volumes:
-#   ollama_data:
+volumes:
+  backend_data:
+  # ollama_data:
