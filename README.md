@@ -32,15 +32,15 @@ Everything runs on your machine: local embeddings (sentence-transformers), an on
 ## Screenshots
 
 <p align="center">
-  <img src="docs/screenshots/landing-hero.png" alt="OmniRAG landing page with drag-and-drop upload" width="860">
-  <br>
-  <em>Landing page — drag-and-drop ingestion for PDF, DOCX, PPTX, TXT, code, CSV/Excel, and images</em>
-</p>
-
-<p align="center">
   <img src="docs/screenshots/chat-ui.png" alt="OmniRAG chat interface with knowledge files and grounded answer" width="860">
   <br>
   <em>Chat interface — knowledge-file cards, conversation history, and streaming grounded answers</em>
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/landing-hero.png" alt="OmniRAG answering 'explain both images' with a grounded analysis of two uploaded image files" width="860">
+  <br>
+  <em>Image Q&amp;A — two uploaded images surface as knowledge cards, answered with a grounded step-by-step analysis</em>
 </p>
 
 ## Key features
