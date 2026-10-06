@@ -16,7 +16,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements.txt pytest
       - name: Run tests (Ollama-dependent eval harness excluded)
         run: pytest -q --ignore=tests/eval_rag.py
 
