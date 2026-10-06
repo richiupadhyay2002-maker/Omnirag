@@ -40,6 +40,7 @@ groq==0.11.0              # Free tier as of writing; verify current limits yours
 ragas==0.2.5
 datasets==2.20.0
 langchain-ollama==0.2.0
+nltk==3.9.2               # Required by Ragas metric imports
 
 # ---- Utilities ----
 numpy==1.26.4

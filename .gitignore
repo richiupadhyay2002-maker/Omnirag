@@ -41,7 +41,7 @@ frontend/.env.*
 !frontend/.env.example
 
 # ---- IDE / OS (personal paths) ----
-.vscode/settings.json
+.vscode/
 .idea/
 .DS_Store
 Thumbs.db
@@ -49,4 +49,3 @@ Thumbs.db
 # ---- Misc ----
 .qodo/
 *.log
-

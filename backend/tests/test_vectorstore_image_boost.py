@@ -48,21 +48,28 @@ IMAGE_BOOST = 0.15
 
 
 def _make_col_result(docs, metas, dists):
-    return {"documents": [docs], "metadatas": [metas], "distances": [dists]}
+    ids = [f"chunk-{i}" for i in range(len(docs))]
+    return {"ids": [ids], "documents": [docs], "metadatas": [metas], "distances": [dists]}
 
 
 def _make_col(n_total, query_result):
     col = MagicMock()
     col.count.return_value = n_total
     col.query.return_value = query_result
+    col.get.return_value = {
+        "ids": query_result["ids"][0],
+        "documents": query_result["documents"][0],
+        "metadatas": query_result["metadatas"][0],
+    }
     return col
 
 
 class TestImageBoost:
-    def _run_query(self, col, top_k=8):
+    def _run_query(self, col, top_k=8, question="explain the diagram"):
+        vectorstore._bm25_cache.pop("ws", None)
         with patch.object(vectorstore, "_collection", return_value=col), \
              patch.object(vectorstore, "embed_query", return_value=[0.0]):
-            return vectorstore.query("ws", "explain the diagram", top_k=top_k)
+            return vectorstore.query("ws", question, top_k=top_k)
 
     def test_image_chunk_gets_boosted_score(self):
         col = _make_col(2, _make_col_result(
@@ -141,9 +148,59 @@ class TestImageBoost:
             assert vectorstore.query("ws", "q") == []
 
     def test_file_ids_filter_passed_to_chroma(self):
+        vectorstore._bm25_cache.pop("ws", None)
         col = _make_col(1, _make_col_result(
             ["x"], [{"file_id": "only-this", "filename": "a.pdf", "file_type": "pdf"}], [0.1]))
         with patch.object(vectorstore, "_collection", return_value=col), \
              patch.object(vectorstore, "embed_query", return_value=[0.0]):
             vectorstore.query("ws", "q", file_ids=["only-this"])
         assert col.query.call_args.kwargs["where"] == {"file_id": {"$in": ["only-this"]}}
+        assert col.get.call_args.kwargs["include"] == ["documents", "metadatas"]
+
+    def test_bm25_reranking_promotes_exact_term_match(self):
+        col = _make_col(2, _make_col_result(
+            ["general explanation", "ZX-81 rotor torque specification"],
+            [
+                {"file_id": "a", "filename": "general.txt", "file_type": "text"},
+                {"file_id": "b", "filename": "manual.txt", "file_type": "text"},
+            ],
+            [0.48, 0.60],
+        ))
+        hits = self._run_query(col, top_k=2, question="ZX-81 rotor torque")
+        assert hits[0]["filename"] == "manual.txt"
+        assert hits[0]["score"] > hits[1]["score"]
+
+    def test_lexical_candidates_join_dense_candidate_pool(self):
+        dense_result = _make_col_result(
+            ["general explanation"],
+            [{"file_id": "a", "filename": "general.txt", "file_type": "text"}],
+            [0.90],
+        )
+        col = _make_col(2, dense_result)
+        col.get.return_value = {
+            "ids": ["chunk-0", "chunk-1"],
+            "documents": ["general explanation", "ZX-81 rotor torque specification"],
+            "metadatas": [
+                {"file_id": "a", "filename": "general.txt", "file_type": "text"},
+                {"file_id": "b", "filename": "manual.txt", "file_type": "text"},
+            ],
+        }
+
+        hits = self._run_query(col, top_k=1, question="ZX-81 rotor torque")
+
+        assert hits[0]["filename"] == "manual.txt"
+
+    def test_dense_only_mode_preserves_similarity_order(self):
+        vectorstore._bm25_cache.pop("ws", None)
+        col = _make_col(2, _make_col_result(
+            ["general explanation", "ZX-81 rotor torque specification"],
+            [
+                {"file_id": "a", "filename": "general.txt", "file_type": "text"},
+                {"file_id": "b", "filename": "manual.txt", "file_type": "text"},
+            ],
+            [0.48, 0.60],
+        ))
+        with patch.object(vectorstore, "_collection", return_value=col), \
+             patch.object(vectorstore, "embed_query", return_value=[0.0]):
+            hits = vectorstore.query("ws", "ZX-81 rotor torque", hybrid=False)
+        assert [hit["filename"] for hit in hits] == ["general.txt", "manual.txt"]

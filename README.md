@@ -52,6 +52,7 @@ Everything runs on your machine by default: local embeddings (sentence-transform
 - **Per-type ingestion pipelines** — PyMuPDF (PDF), python-docx, python-pptx, pandas/openpyxl, a 13-language code detector, and Tesseract OCR for images — each chunk tagged with page / slide / line / row provenance.
 - **Content-aware chunking** — per-file-type chunk sizes with boundary-aware splitting for source code.
 - **Local embeddings & vector search** — `all-MiniLM-L6-v2` (384-d) into ChromaDB, organized as per-workspace collections with metadata filters (`file_id`, `page`, `slide`, `lang`, `branch`).
+- **Hybrid retrieval** — dense vector search candidates are combined with BM25 lexical matches and reranked, improving exact-term retrieval without an additional service or package.
 - **Hallucination guard** — a grounded-only system prompt requires answers to come from retrieved context and an explicit "not found in the uploaded files" response otherwise.
 - **Citations computed independently of generation** — every answer links file, location, snippet, and relevance score.
 
@@ -82,7 +83,7 @@ Everything runs on your machine by default: local embeddings (sentence-transform
 |---|---|
 | **Frontend** | React 18 · Vite 5 · Tailwind CSS 3 · react-markdown · react-syntax-highlighter · lucide-react |
 | **Backend / API** | FastAPI 0.115 · Uvicorn · SSE streaming (sse-starlette) · Pydantic v2 |
-| **Retrieval** | sentence-transformers (`all-MiniLM-L6-v2`) · ChromaDB (on-disk, per-workspace) |
+| **Retrieval** | sentence-transformers (`all-MiniLM-L6-v2`) · BM25 hybrid reranking · ChromaDB (on-disk, per-workspace) |
 | **Generation** | Ollama local LLMs (`llama3.1:8b`; vision: `llava:7b`) · optional Groq free tier |
 | **File processing** | PyMuPDF · python-docx · python-pptx · pandas · openpyxl · Pillow · Tesseract OCR |
 | **Quality** | pytest · RAGAS evaluation harness |
@@ -165,7 +166,49 @@ pytest                          # unit & integration suites
 python -m tests.eval_rag        # RAG quality harness (golden set)
 ```
 
-The evaluation harness runs a 15-question golden set (factual, cross-file, code, and deliberately unanswerable) and reports **Recall@k**, **MRR**, keyword answer accuracy, a lightweight LLM judge, and **RAGAS** metrics — faithfulness, answer relevance, context precision, and context recall — writing full per-question results to `backend/eval/results.json`.
+The evaluation harness runs a 15-question golden set and reports **Recall@k** and **MRR** for dense-only and hybrid retrieval. Thirteen questions have an expected source filename; two no-source questions are excluded from retrieval metrics. When Ollama is available, generated answers can also be scored with keyword checks, a lightweight judge, and **RAGAS** (faithfulness, answer relevancy, context precision, and context recall).
+
+### Sample retrieval comparison
+
+Measured on the checked-in fixture documents and golden questions (`k=8`):
+
+| Retriever | Recall@8 | MRR |
+|---|---:|---:|
+| Before: pure-Python TF-IDF fallback | 1.0000 | 0.9423 |
+| After: TF-IDF + BM25 reranking | 1.0000 | 0.9487 |
+
+This run used the evaluation harness's explicitly labeled TF-IDF fallback (not the sentence-transformer embeddings); 13 questions with expected source filenames were scored and the 2 no-source questions were excluded from Recall@8 and MRR.
+
+### Sample RAGAS answer-quality check
+
+Measured on the first three factual questions in the golden set, using the local Ollama `llama3:latest` judge and `nomic-embed-text` embeddings:
+
+| RAGAS metric | Score | Questions |
+|---|---:|---:|
+| Faithfulness | 1.0000 | 3 |
+| Answer relevancy | 0.9539 | 3 |
+| Context precision | 0.9000 | 3 |
+| Context recall | 1.0000 | 3 |
+
+All three generated answers passed the harness's keyword check. These are measured sample results, not a full-set estimate: answer generation used the explicitly labeled TF-IDF + BM25 fallback because sentence-transformer embeddings were unavailable in this environment.
+
+Reproduce the retrieval comparison with:
+
+```bash
+cd backend
+python -m tests.eval_rag --docs tests/eval_data/docs --questions tests/eval_data/golden_questions.csv
+```
+
+To collect answer and RAGAS metrics, install `backend/requirements.txt`, start Ollama, pull the configured chat model and the `nomic-embed-text` embedding model (or set `OLLAMA_EMBEDDING_MODEL` to another Ollama embedding model), and run:
+
+```bash
+ollama pull llama3.1:8b
+ollama pull nomic-embed-text
+cd backend
+python -m tests.eval_rag --docs tests/eval_data/docs --questions tests/eval_data/golden_questions.csv --with-answers --judge ragas
+```
+
+Full per-question output is written to `backend/eval/results.json`, which is intentionally gitignored because evaluation data can contain private document content.
 
 ## Project structure
 
@@ -207,7 +250,7 @@ Omnirag/
 
 ## Roadmap
 
-Designed with clean extension seams for: cross-encoder **reranking**, hybrid **BM25 + vector** search, **LangGraph** multi-agent workflows, **tree-sitter** AST-level code parsing, authentication & multi-user workspaces, and cloud deployment.
+Hybrid **BM25 + vector** retrieval with lightweight reranking is implemented. Remaining roadmap: cross-encoder reranking, **LangGraph** multi-agent workflows, **tree-sitter** AST-level code parsing, authentication & multi-user workspaces, and cloud deployment.
 
 ---
 

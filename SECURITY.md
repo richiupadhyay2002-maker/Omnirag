@@ -22,7 +22,7 @@ fixed. Thank you for helping keep OmniRAG and its users safe.
 - Vector-store / database files (`backend/data/`, `*.sqlite3`, `*.db`).
 - Eval outputs that may contain private document text
   (`backend/eval/results.json`).
-- IDE files with personal paths (`.vscode/settings.json`).
+- IDE files with personal paths (`.vscode/`).
 - Build / dependency dirs (`venv/`, `node_modules/`, `dist/`, `build/`).
 
 These paths are gitignored. If you accidentally stage one, unstage it and tell

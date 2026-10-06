@@ -178,19 +178,20 @@ def _tokenize(text: str) -> list[str]:
 
 
 def score_retrieval_tfidf(docs_dir: str | Path, questions: list[dict],
-                          top_k: int = 8) -> dict:
-    """Zero-dependency retrieval baseline: pure-Python TF-IDF (stdlib only).
+                          top_k: int = 8, hybrid: bool = False) -> dict:
+    """Pure-Python TF-IDF baseline, optionally reranked with BM25.
 
     Used ONLY when torch/sentence-transformers AND sklearn are unusable on
     this machine (both ship compiled DLLs blocked by WDAC/AppLocker here).
     Ingests via the real loaders + chunker, scores with hand-rolled TF-IDF
-    cosine similarity (no numpy/scipy/sklearn/torch). Result is a
-    lexical-retrieval lower bound — labeled `backend: tfidf-fallback-pure`.
+    cosine similarity and the same BM25 reranker as production (stdlib only).
+    Results are labeled as a fallback and are not semantic-embedding scores.
     Real semantic numbers require torch working (see eval_workspace skip).
     """
     from math import log
     from app.ingestion import detect_file_type, load_file
     from app.chunking import chunk_documents
+    from app.retrieval import bm25_scores_from_tokens, hybrid_rerank_score, tokenize
 
     docs_dir = Path(docs_dir)
     chunks: list[dict] = []  # {text, filename, tf: Counter}
@@ -222,6 +223,7 @@ def score_retrieval_tfidf(docs_dir: str | Path, questions: list[dict],
         return w, norm
 
     chunk_vecs = [vec_norm(c["tf"]) for c in chunks]
+    chunk_tokens = [tokenize(c["text"]) for c in chunks]
     per_q: list[dict] = []
     rrs: list[float] = []
     hits = scored = 0
@@ -240,7 +242,16 @@ def score_retrieval_tfidf(docs_dir: str | Path, questions: list[dict],
         for (cw, cn) in chunk_vecs:
             dot = sum(qw.get(t, 0.0) * cw.get(t, 0.0) for t in qw)
             sims.append(dot / (qn * cn) if qn and cn else 0.0)
-        order = sorted(range(len(sims)), key=lambda i: sims[i], reverse=True)[:top_k]
+        if hybrid:
+            bm25 = bm25_scores_from_tokens(tokenize(q["question"]), chunk_tokens)
+            max_bm25 = max(bm25, default=0.0)
+            scores = [
+                hybrid_rerank_score(dense, lexical, max_bm25)
+                for dense, lexical in zip(sims, bm25)
+            ]
+        else:
+            scores = sims
+        order = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:top_k]
         expected = q["source_filename"].lower()
         rank = next((i + 1 for i, idx in enumerate(order)
                      if chunks[idx]["filename"].lower() == expected), None)
@@ -253,7 +264,7 @@ def score_retrieval_tfidf(docs_dir: str | Path, questions: list[dict],
                       "retrieved_rank": rank,
                       "top_file": chunks[order[0]]["filename"] if order else None,
                       "reciprocal_rank": round(rr, 4)})
-    return {"backend": "tfidf-fallback-pure",
+    return {"backend": "tfidf+bm25-fallback-pure" if hybrid else "tfidf-fallback-pure",
             "recall_at_k": round(hits / scored, 4) if scored else 0.0,
             "mrr": round(sum(rrs) / len(rrs), 4) if rrs else 0.0,
             "top_k": top_k, "num_scored": scored,
@@ -264,7 +275,8 @@ def score_retrieval_tfidf(docs_dir: str | Path, questions: list[dict],
 # ---------------------------------------------------------------------------
 # Retrieval scoring (no LLM) + answer collection for Ragas
 # ---------------------------------------------------------------------------
-def score_retrieval(ws_id: str, questions: list[dict], top_k: int = 8) -> dict:
+def score_retrieval(ws_id: str, questions: list[dict], top_k: int = 8,
+                    hybrid: bool = True) -> dict:
     """Recall@k + MRR: is the expected source file in the top-k, at what rank?
 
     Unanswerable Qs (empty source_filename) pass retrieval iff the answer
@@ -278,7 +290,9 @@ def score_retrieval(ws_id: str, questions: list[dict], top_k: int = 8) -> dict:
     hits = 0
     scored = 0
     for q in questions:
-        result = vectorstore.query(ws_id, q["question"], top_k=top_k)
+        result = vectorstore.query(
+            ws_id, q["question"], top_k=top_k, hybrid=hybrid
+        )
         expected_src = q["source_filename"].lower()
         if not expected_src:
             per_q.append({"question": q["question"], "category": q["category"],
@@ -403,8 +417,9 @@ def _chunk_docs_for_tfidf(docs_dir: str | Path) -> list[dict]:
 
 
 def collect_answers_tfidf(docs_dir: str | Path, questions: list[dict],
-                          top_k: int = 8, max_ctx_chars: int = 6000) -> list[dict]:
-    """Full RAG pipeline WITHOUT torch: TF-IDF retrieval + Ollama generation.
+                          top_k: int = 8, max_ctx_chars: int = 6000,
+                          hybrid: bool = True) -> list[dict]:
+    """Full RAG pipeline WITHOUT torch: TF-IDF + optional BM25 and Ollama.
 
     Uses the same grounded SYSTEM_PROMPT as app/rag.py so the answer
     accuracy reflects the real prompt/pipeline (only the retriever differs).
@@ -413,6 +428,7 @@ def collect_answers_tfidf(docs_dir: str | Path, questions: list[dict],
     on this machine.
     """
     from math import log
+    from app.retrieval import bm25_scores_from_tokens, hybrid_rerank_score, tokenize
 
     try:
         from app.llm import generate_stream  # needs `ollama` pkg
@@ -449,6 +465,7 @@ provided from the user's uploaded files. Rules:
             df[t] = df.get(t, 0) + 1
     n = len(chunks)
     idf = {t: log((1 + n) / (1 + d)) + 1.0 for t, d in df.items()}
+    chunk_tokens = [tokenize(c["text"]) for c in chunks]
 
     def score(q: str) -> list[int]:
         qtf: dict[str, int] = {}
@@ -462,7 +479,16 @@ provided from the user's uploaded files. Rules:
             cnorm = sum(v * v for v in cw.values()) ** 0.5
             dot = sum(qw.get(t, 0.0) * cw.get(t, 0.0) for t in qw)
             sims.append(dot / (qnorm * cnorm) if qnorm and cnorm else 0.0)
-        return sorted(range(len(sims)), key=lambda i: sims[i], reverse=True)[:top_k]
+        if hybrid:
+            bm25 = bm25_scores_from_tokens(tokenize(q), chunk_tokens)
+            max_bm25 = max(bm25, default=0.0)
+            scores = [
+                hybrid_rerank_score(dense, lexical, max_bm25)
+                for dense, lexical in zip(sims, bm25)
+            ]
+        else:
+            scores = sims
+        return sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:top_k]
 
     rows: list[dict] = []
     for quest in questions:
@@ -541,10 +567,12 @@ def score_ragas(rows: list[dict]) -> dict:
     try:
         from datasets import Dataset
         from ragas import evaluate
+        from ragas.run_config import RunConfig
     except ImportError as e:
         raise ImportError(
-            "Ragas not installed. Run: pip install ragas datasets "
-            "langchain-ollama (see backend/requirements.txt).") from e
+            "Ragas not installed or an evaluation dependency is missing. "
+            "Run: pip install -r backend/requirements.txt. "
+            f"Import detail: {e}") from e
     try:
         from langchain_ollama import ChatOllama, OllamaEmbeddings
         from app.config import settings
@@ -568,7 +596,7 @@ def score_ragas(rows: list[dict]) -> dict:
 
     llm = ChatOllama(model=settings.OLLAMA_MODEL,
                      base_url=settings.OLLAMA_BASE_URL, temperature=0)
-    embeddings = OllamaEmbeddings(model=settings.OLLAMA_MODEL,
+    embeddings = OllamaEmbeddings(model=settings.OLLAMA_EMBEDDING_MODEL,
                                   base_url=settings.OLLAMA_BASE_URL)
     # Preflight: fail fast with a clear message if Ollama is down.
     try:
@@ -588,15 +616,19 @@ def score_ragas(rows: list[dict]) -> dict:
     result = evaluate(
         dataset,
         metrics=[faithfulness, answer_relevancy, context_precision, context_recall],
-        llm=llm, embeddings=embeddings, raise_exceptions=False)
-    try:
-        scores = result.to_pandas()  # one row per question
-        means = {c: round(float(scores[c].mean()), 4)
-                 for c in scores.columns if c != "question"}
-    except Exception:
-        means = {k: round(float(v), 4) for k, v in dict(result).items()
-                 if isinstance(v, (int, float))}
-    return {"means": means, "num_scored": len(usable),
+        llm=llm, embeddings=embeddings, raise_exceptions=False,
+        run_config=RunConfig(timeout=600, max_retries=1, max_workers=1))
+    scores = result.to_pandas()
+    numeric_scores = scores.select_dtypes(include="number")
+    means = {}
+    metric_counts = {}
+    for metric in numeric_scores.columns:
+        valid_scores = numeric_scores[metric].dropna()
+        metric_counts[metric] = len(valid_scores)
+        if not valid_scores.empty:
+            means[metric] = round(float(valid_scores.mean()), 4)
+    return {"means": means, "metric_counts": metric_counts,
+            "num_scored": len(usable),
             "model": settings.OLLAMA_MODEL}
 # ---------------------------------------------------------------------------
 # Orchestration + report
@@ -608,8 +640,13 @@ def run_eval(docs_dir, questions_path, top_k=8, with_answers=False, judge="none"
         print("Ingesting documents (Chroma backend)...")
         ws_id = ingest_docs(docs_dir)
         try:
-            print("Scoring retrieval...")
-            retrieval = score_retrieval(ws_id, questions, top_k=top_k)
+            print("Scoring dense baseline and hybrid retrieval...")
+            retrieval_baseline = score_retrieval(
+                ws_id, questions, top_k=top_k, hybrid=False
+            )
+            retrieval = score_retrieval(
+                ws_id, questions, top_k=top_k, hybrid=True
+            )
             answers = None
             rows = []
             if with_answers:
@@ -626,13 +663,19 @@ def run_eval(docs_dir, questions_path, top_k=8, with_answers=False, judge="none"
                     answers["ragas"] = score_ragas(rows)
             preview = [{"question": r["question"], "answer": r["answer"][:500],
                         "contexts_n": len(r["contexts"])} for r in rows]
-            return {"retrieval": retrieval, "answers": answers, "answer_rows": preview}
+            return {"retrieval": retrieval, "retrieval_baseline": retrieval_baseline,
+                    "answers": answers, "answer_rows": preview}
         finally:
             cleanup_workspace(ws_id)
     # Torch-free path: TF-IDF retrieval (+ Ollama answers if requested).
     print("torch unavailable — using TF-IDF fallback retriever...")
-    print("Scoring retrieval...")
-    retrieval = score_retrieval_tfidf(docs_dir, questions, top_k=top_k)
+    print("Scoring TF-IDF baseline and hybrid retrieval...")
+    retrieval_baseline = score_retrieval_tfidf(
+        docs_dir, questions, top_k=top_k, hybrid=False
+    )
+    retrieval = score_retrieval_tfidf(
+        docs_dir, questions, top_k=top_k, hybrid=True
+    )
     answers = None
     rows = []
     if with_answers:
@@ -654,13 +697,20 @@ def run_eval(docs_dir, questions_path, top_k=8, with_answers=False, judge="none"
                 answers["ragas_skipped"] = str(e)
     preview = [{"question": r["question"], "answer": r["answer"][:500],
                 "contexts_n": len(r["contexts"])} for r in rows]
-    return {"retrieval": retrieval, "answers": answers, "answer_rows": preview}
+    return {"retrieval": retrieval, "retrieval_baseline": retrieval_baseline,
+            "answers": answers, "answer_rows": preview}
 
 
-def print_report(retrieval, answers) -> None:
+def print_report(retrieval, answers, retrieval_baseline=None) -> None:
     print("\n" + "=" * 64)
     print("OMNIRAG EVALUATION RESULTS")
     print("=" * 64)
+    if retrieval_baseline:
+        print(f"Before (dense baseline) Recall@{retrieval_baseline['top_k']}: "
+              f"{retrieval_baseline['recall_at_k']*100:.1f}%  "
+              f"MRR: {retrieval_baseline['mrr']:.4f}")
+    print(f"After (hybrid rerank)  Recall@{retrieval['top_k']}: "
+          f"{retrieval['recall_at_k']*100:.1f}%  MRR: {retrieval['mrr']:.4f}")
     print(f"Recall@{retrieval['top_k']} (right source) : "
           f"{retrieval['recall_at_k']*100:.1f}%  (n={retrieval['num_scored']})")
     print(f"MRR (mean reciprocal rank)          : {retrieval['mrr']:.3f}")
@@ -678,6 +728,8 @@ def print_report(retrieval, answers) -> None:
             print("Ragas (local Ollama judge):")
             for k, v in answers["ragas"]["means"].items():
                 print(f"  - {k:<18}: {v}")
+        elif answers.get("ragas_skipped"):
+            print(f"Ragas not run: {answers['ragas_skipped']}")
     print("-" * 64)
     print(f"{'Q':<48} {'rank':>5}")
     for d in retrieval["details"]:
@@ -740,17 +792,23 @@ def test_rag_retrieval_accuracy(request, eval_workspace):
 
 
 def test_retrieval_tfidf_fallback(request):
-    """Zero-torch lexical baseline — runs everywhere (sklearn only).
+    """Zero-torch retrieval comparison — runs with the standard library.
 
-    Reports the TF-IDF lower-bound accuracy when torch is blocked. When
-    torch works this still runs as a useful lexical-vs-semantic comparison.
+    Reports the TF-IDF baseline and TF-IDF + BM25 reranking on the same
+    bundled corpus and golden questions.
     """
     questions = load_questions(_opt(request, "eval_questions", str(DEFAULT_QUESTIONS)))
     top_k = _opt(request, "eval_top_k", 8)
     docs = _opt(request, "eval_docs", str(DEFAULT_DOCS))
-    retrieval = score_retrieval_tfidf(docs, questions, top_k=top_k)
-    print_report(retrieval, None)
-    write_results({"retrieval": retrieval, "answers": None,
+    retrieval_baseline = score_retrieval_tfidf(
+        docs, questions, top_k=top_k, hybrid=False
+    )
+    retrieval = score_retrieval_tfidf(
+        docs, questions, top_k=top_k, hybrid=True
+    )
+    print_report(retrieval, None, retrieval_baseline)
+    write_results({"retrieval": retrieval,
+                   "retrieval_baseline": retrieval_baseline, "answers": None,
                    "docs": str(docs),
                    "questions": str(_opt(request, "eval_questions", str(DEFAULT_QUESTIONS)))})
     fail_under = _opt(request, "eval_fail_under", 0.0)
@@ -788,11 +846,17 @@ def test_answer_tfidf(request):
             answers["ragas"] = score_ragas(rows)
         except (ImportError, RuntimeError) as e:
             answers["ragas_skipped"] = str(e)
-    retrieval = score_retrieval_tfidf(docs, questions, top_k=top_k)
+    retrieval_baseline = score_retrieval_tfidf(
+        docs, questions, top_k=top_k, hybrid=False
+    )
+    retrieval = score_retrieval_tfidf(
+        docs, questions, top_k=top_k, hybrid=True
+    )
     retrieval["note"] = ("TF-IDF retriever (torch blocked); answers from "
                          + answers.get("model", "Ollama"))
-    print_report(retrieval, answers)
-    write_results({"retrieval": retrieval, "answers": answers,
+    print_report(retrieval, answers, retrieval_baseline)
+    write_results({"retrieval": retrieval,
+                   "retrieval_baseline": retrieval_baseline, "answers": answers,
                    "docs": str(docs),
                    "questions": str(_opt(request, "eval_questions", str(DEFAULT_QUESTIONS)))})
     assert answers["keyword_accuracy"] > 0, "No answer passed keyword check."
@@ -827,9 +891,15 @@ def test_rag_answer_accuracy(request, eval_workspace):
             answers["ragas"] = score_ragas(rows)
         except (ImportError, RuntimeError) as e:
             pytest.skip(f"Ragas unavailable: {e}")
-    retrieval = score_retrieval(eval_workspace, questions, top_k=top_k)
-    print_report(retrieval, answers)
-    write_results({"retrieval": retrieval, "answers": answers,
+    retrieval_baseline = score_retrieval(
+        eval_workspace, questions, top_k=top_k, hybrid=False
+    )
+    retrieval = score_retrieval(
+        eval_workspace, questions, top_k=top_k, hybrid=True
+    )
+    print_report(retrieval, answers, retrieval_baseline)
+    write_results({"retrieval": retrieval,
+                   "retrieval_baseline": retrieval_baseline, "answers": answers,
                    "docs": str(_opt(request, "eval_docs", str(DEFAULT_DOCS))),
                    "questions": str(_opt(request, "eval_questions", str(DEFAULT_QUESTIONS)))})
     assert answers["keyword_accuracy"] > 0, "No answer passed keyword check."
@@ -850,8 +920,11 @@ def main(argv=None):
     args = ap.parse_args(argv)
     payload = run_eval(args.docs, args.questions, top_k=args.top_k,
                        with_answers=args.with_answers, judge=args.judge)
-    print_report(payload["retrieval"], payload["answers"])
-    write_results({"retrieval": payload["retrieval"], "answers": payload["answers"],
+    print_report(payload["retrieval"], payload["answers"],
+                 payload["retrieval_baseline"])
+    write_results({"retrieval": payload["retrieval"],
+                   "retrieval_baseline": payload["retrieval_baseline"],
+                   "answers": payload["answers"],
                    "docs": str(args.docs), "questions": str(args.questions),
                    "answer_rows": payload["answer_rows"]})
     if payload["retrieval"]["recall_at_k"] < args.fail_under:

@@ -19,6 +19,7 @@ class Settings(BaseSettings):
 
     # Embeddings
     EMBEDDING_MODEL: str = "sentence-transformers/all-MiniLM-L6-v2"
+    OLLAMA_EMBEDDING_MODEL: str = "nomic-embed-text"
 
     # Vector store
     CHROMA_PERSIST_DIR: str = "./data/chroma"
