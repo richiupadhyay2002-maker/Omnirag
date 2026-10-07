@@ -4,7 +4,7 @@
 
 ### Universal Multimodal AI Knowledge Assistant
 
-**Chat with any file — grounded, cited, hallucination-checked answers.**
+**Chat with any file — grounded, cited, source-traced answers.**
 
 Runs 100% locally by default · $0 infrastructure cost · no cloud APIs required (optional Groq fallback off by default)
 
@@ -27,7 +27,7 @@ Runs 100% locally by default · $0 infrastructure cost · no cloud APIs required
 
 **OmniRAG** turns everyday files — PDFs, slide decks, Word documents, source code, spreadsheets, and images — into a conversational knowledge base. Upload documents, ask questions in plain language, and receive **streaming answers with clickable citations** pointing to the exact page, slide, line, or row the answer came from.
 
-The engineering focus of this project is the layer most RAG demos skip: **per-file-type ingestion that preserves provenance**. Every document type gets its own loader and chunking strategy, normalizing heterogeneous files into a common shape that carries source metadata. At query time, that metadata powers document-scoped retrieval, citations computed independently of generation, and a **hallucination guard** that forces the model to answer only from retrieved context — or state that the answer wasn't found.
+The engineering focus of this project is the layer most RAG demos skip: **per-file-type ingestion that preserves provenance**. Every document type gets its own loader and chunking strategy, normalizing heterogeneous files into a common shape that carries source metadata. At query time, that metadata powers document-scoped retrieval and citations computed independently of generation, and a grounded-only prompt instructs the model to answer from retrieved context — or state that the answer wasn't found.
 
 Everything runs on your machine by default: local embeddings (sentence-transformers), an on-disk vector database (ChromaDB), and a local LLM served by Ollama. An optional free-tier Groq fallback exists but is **off by default** (`LLM_PROVIDER=ollama`); enabling it sends queries to a third-party API.
 
@@ -49,11 +49,11 @@ Everything runs on your machine by default: local embeddings (sentence-transform
 
 ### 🧠 Retrieval & grounding
 
-- **Per-type ingestion pipelines** — PyMuPDF (PDF), python-docx, python-pptx, pandas/openpyxl, a 13-language code detector, and Tesseract OCR for images — each chunk tagged with page / slide / line / row provenance.
+- **Per-type ingestion pipelines** — PyMuPDF (PDF), python-docx, python-pptx, pandas/openpyxl, an extension-based detector covering 19 code file types, and Tesseract OCR for images — each chunk tagged with page / slide / line / row provenance.
 - **Content-aware chunking** — per-file-type chunk sizes with boundary-aware splitting for source code.
-- **Local embeddings & vector search** — `all-MiniLM-L6-v2` (384-d) into ChromaDB, organized as per-workspace collections with metadata filters (`file_id`, `page`, `slide`, `lang`, `branch`).
+- **Local embeddings & vector search** — `all-MiniLM-L6-v2` (384-d) into ChromaDB, organized as per-workspace collections with document-scoped filtering by `file_id`.
 - **Hybrid retrieval** — dense vector search candidates are combined with BM25 lexical matches and reranked, improving exact-term retrieval without an additional service or package.
-- **Hallucination guard** — a grounded-only system prompt requires answers to come from retrieved context and an explicit "not found in the uploaded files" response otherwise.
+- **Grounded-only prompting** — the system prompt instructs the model to answer only from retrieved context and to return an explicit "not found in the uploaded files" response otherwise. This is a prompt instruction, not a post-hoc verification step.
 - **Citations computed independently of generation** — every answer links file, location, snippet, and relevance score.
 
 ### 💬 Chat experience
@@ -62,7 +62,7 @@ Everything runs on your machine by default: local embeddings (sentence-transform
 - **Document-scoped chat** — "Ask about" chips filter retrieval to selected files, so answers respect exactly the documents you choose.
 - **Six response modes** — Default, Simple, Deep, Exam, Code, Research.
 - **Conversation management** — create, rename, delete, persisted history with automatic titles.
-- **Shareable links** — a URL (`?w=…&c=…`) restores the full workspace and conversation for anyone with the link.
+- **Shareable links** — a URL (`?w=…&c=…`) restores the full workspace and conversation. There is no authentication: anyone with the link can open it, so only share links to non-sensitive content.
 - **Polished React UI** — dark theme, drag-and-drop upload, file cards, and citation cards.
 
 ### 🖼️ Multimodal
@@ -118,7 +118,7 @@ Everything runs on your machine by default: local embeddings (sentence-transform
 ### Prerequisites
 
 - **Python 3.11**
-- **Node.js 18+**
+- **Node.js 20+**
 - **[Ollama](https://ollama.com)** with `llama3.1:8b` (add `llava:7b` for image Q&A)
 - *Optional:* [Tesseract OCR](https://github.com/UB-Mannheim/tesseract/wiki) for scanned documents and images
 - *Optional:* Docker, if you prefer containers
@@ -158,6 +158,10 @@ Configuration lives in `backend/.env` — every key (LLM provider, model names, 
 docker compose up --build       # backend :8000, frontend :5173
 ```
 
+The Compose stack expects Ollama running on the host (it reaches it at
+`host.docker.internal:11434`) and runs the Vite **development** server for the
+frontend, not a production bundle.
+
 ## Testing & evaluation
 
 ```bash
@@ -181,7 +185,7 @@ This run used the evaluation harness's explicitly labeled TF-IDF fallback (not t
 
 ### Sample RAGAS answer-quality check
 
-Measured on the first three factual questions in the golden set, using the local Ollama `llama3:latest` judge and `nomic-embed-text` embeddings:
+Measured on the first three factual questions in the golden set, using the configured local Ollama judge (`OLLAMA_MODEL`) and `nomic-embed-text` embeddings:
 
 | RAGAS metric | Score | Questions |
 |---|---:|---:|
