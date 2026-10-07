@@ -32,7 +32,7 @@ Golden CSV schema (new cols optional, backward-compat with old 4-col file):
   {factual,cross-file,unanswerable,code,image}. Empty source_filename means
   "no specific source required" (unanswerable Qs expect the not-found reply).
 
-Results are printed as a table and written to eval/results.json.
+Results are printed as a table and written to backend/eval/results.json (gitignored).
 """
 import argparse
 import csv
